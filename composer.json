@@ -1,0 +1,13 @@
+{
+  "name": "convenient/hello",
+  "description": "Convenient Hello module for Magento 2",
+  "type": "magento2-module",
+  "autoload": {
+    "files": [
+      "registration.php"
+    ],
+    "psr-4": {
+      "Convenient\\Hello\\": ""
+    }
+  }
+}

@@ -1,0 +1,68 @@
+name: ExtDN M2 Integration Tests
+on:
+  push:
+    branches:
+      - '*'
+  pull_request:
+
+jobs:
+  integration-tests-2-4-7-p5:
+    name: "Integration 2.4.7-p5"
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: --tmpfs /tmp:rw --tmpfs /var/lib/mysql:rw --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+      es:
+        image: docker.io/wardenenv/elasticsearch:7.8
+        ports:
+          - 9200:9200
+        env:
+          'discovery.type': single-node
+          'xpack.security.enabled': false
+          ES_JAVA_OPTS: "-Xms64m -Xmx512m"
+        options: --health-cmd="curl localhost:9200/_cluster/health?wait_for_status=yellow&timeout=60s" --health-interval=10s --health-timeout=5s --health-retries=3
+    env:
+      XDEBUG_MODE: "debug"
+      MODULE_NAME: "Convenient_Hello"
+      COMPOSER_NAME: "convenient/hello"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: extdn/github-actions-m2/magento-integration-tests/8.3@master
+        env:
+          MAGENTO_VERSION: "2.4.7-p5"
+          COMPOSER_VERSION: "2"
+  integration-tests-2-4-8:
+    name: "Integration 2.4.8"
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: --tmpfs /tmp:rw --tmpfs /var/lib/mysql:rw --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+      es:
+        image: docker.io/wardenenv/elasticsearch:8.1
+        ports:
+          - 9200:9200
+        env:
+          'discovery.type': single-node
+          'xpack.security.enabled': false
+          ES_JAVA_OPTS: "-Xms64m -Xmx512m"
+        options: --health-cmd="curl localhost:9200/_cluster/health?wait_for_status=yellow&timeout=60s" --health-interval=10s --health-timeout=5s --health-retries=3
+    env:
+      XDEBUG_MODE: "debug"
+      MODULE_NAME: "Convenient_Hello"
+      COMPOSER_NAME: "convenient/hello"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: extdn/github-actions-m2/magento-integration-tests/8.4@master
+        env:
+          MAGENTO_VERSION: "2.4.8"
+          COMPOSER_VERSION: "2"
