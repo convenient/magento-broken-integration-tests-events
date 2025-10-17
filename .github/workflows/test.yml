@@ -36,4 +36,4 @@ jobs:
         shell: bash
         run: |
           ls -l ./foobar
-          cat ./foobar
+          cat ./foobar/luker123.txt
