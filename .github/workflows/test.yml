@@ -9,22 +9,22 @@ run-name: Luke Test – ${{ github.ref_name }}
 jobs:
   build:
     runs-on: ubuntu-latest
-    steps:
-      - name: create a file
-        shell: bash
-        run: |
-          echo "hello world" >  /tmp/luker123.txt
-          date >> /tmp/luker123.txt
-          cat /tmp/luker123.txt
-      - name: archive artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: deployment-build.zip
-          path: /tmp/luker123.txt
-          retention-days: 1
+#    steps:
+#      - name: create a file
+#        shell: bash
+#        run: |
+#          echo "hello world" >  /tmp/luker123.txt
+#          date >> /tmp/luker123.txt
+#          cat /tmp/luker123.txt
+#      - name: archive artifacts
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: deployment-build.zip
+#          path: /tmp/luker123.txt
+#          retention-days: 1
 
   deploy:
-    needs: build
+#    needs: build
     runs-on: ubuntu-latest
     steps:
       - name: download build artifact
