@@ -19,7 +19,7 @@ jobs:
       - name: archive artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: deployment-build
+          name: deployment-build.zip
           path: /tmp/luker123.txt
           retention-days: 1
 
@@ -29,7 +29,7 @@ jobs:
       - name: download build artifact
         uses: actions/download-artifact@v4
         with:
-          name: deployment-build
+          name: deployment-build.zip
           path: ./foobar
       - name: create a file
         shell: bash
