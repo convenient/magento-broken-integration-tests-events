@@ -36,6 +36,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: extdn/github-actions-m2/magento-integration-tests/8.3@master
+        with:
+          magento_pre_install_script: ".github/pre-install.sh"
         env:
           MAGENTO_VERSION: "2.4.7-p5"
           COMPOSER_VERSION: "2"
@@ -66,6 +68,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: extdn/github-actions-m2/magento-integration-tests/8.4@master
+        with:
+          magento_pre_install_script: ".github/pre-install.sh"
         env:
           MAGENTO_VERSION: "2.4.8"
           COMPOSER_VERSION: "2"
