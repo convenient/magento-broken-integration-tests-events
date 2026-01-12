@@ -2,8 +2,11 @@ name: ExtDN M2 Integration Tests
 on:
   push:
     branches:
-      - '*'
+      - '**'
   pull_request:
+  schedule:
+    - cron: '0 7 * * 2'
+  workflow_dispatch:
 
 jobs:
   integration-tests-2-4-7-p5:
