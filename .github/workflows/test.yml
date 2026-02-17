@@ -1,4 +1,4 @@
-name: ExtDN M2 Integration Tests
+name: Elasticsearch Boot Matrix
 on:
   push:
     branches:
@@ -9,102 +9,60 @@ on:
   workflow_dispatch:
 
 jobs:
-  integration-tests-2-4-7-p5:
-    name: "Integration 2.4.7-p5"
+  elasticsearch-boot:
+    name: "ES Boot ${{ matrix.es_version }}"
     runs-on: ubuntu-latest
-    services:
-      mysql:
-        image: mysql:5.7
-        env:
-          MYSQL_ROOT_PASSWORD: root
-        ports:
-          - 3306:3306
-        options: --tmpfs /tmp:rw --tmpfs /var/lib/mysql:rw --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
-      es:
-        image: docker.io/wardenenv/elasticsearch:7.8
-        ports:
-          - 9200:9200
-        env:
-          'discovery.type': single-node
-          'xpack.security.enabled': false
-          ES_JAVA_OPTS: "-Xms64m -Xmx512m"
-        options: --health-cmd="curl localhost:9200/_cluster/health?wait_for_status=yellow&timeout=60s" --health-interval=10s --health-timeout=5s --health-retries=3
-    env:
-      XDEBUG_MODE: "debug"
-      MODULE_NAME: "Convenient_Hello"
-      COMPOSER_NAME: "convenient/hello"
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - es_version: "7.8"
+            es_image: "docker.io/wardenenv/elasticsearch:7.8"
+          - es_version: "7.16"
+            es_image: "docker.io/wardenenv/elasticsearch:7.16"
+          - es_version: "7.17"
+            es_image: "docker.io/wardenenv/elasticsearch:7.17"
+          - es_version: "8.1"
+            es_image: "docker.io/wardenenv/elasticsearch:8.1"
     steps:
-      - uses: actions/checkout@v4
-      - uses: extdn/github-actions-m2/magento-integration-tests/8.3@master
-        with:
-          magento_pre_install_script: ".github/pre-install.sh"
-          post_project_script: ".github/post-project.sh"
-        env:
-          MAGENTO_VERSION: "2.4.7-p5"
-          COMPOSER_VERSION: "2"
-  integration-tests-2-4-8:
-    name: "Integration 2.4.8"
-    runs-on: ubuntu-latest
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: root
-        ports:
-          - 3306:3306
-        options: --tmpfs /tmp:rw --tmpfs /var/lib/mysql:rw --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
-      es:
-        image: docker.io/wardenenv/elasticsearch:8.1
-        ports:
-          - 9200:9200
-        env:
-          'discovery.type': single-node
-          'xpack.security.enabled': false
-          ES_JAVA_OPTS: "-Xms64m -Xmx512m"
-        options: --health-cmd="curl localhost:9200/_cluster/health?wait_for_status=yellow&timeout=60s" --health-interval=10s --health-timeout=5s --health-retries=3
-    env:
-      XDEBUG_MODE: "debug"
-      MODULE_NAME: "Convenient_Hello"
-      COMPOSER_NAME: "convenient/hello"
-    steps:
-      - uses: actions/checkout@v4
-      - uses: extdn/github-actions-m2/magento-integration-tests/8.4@master
-        with:
-          magento_pre_install_script: ".github/pre-install.sh"
-          post_project_script: ".github/post-project.sh"
-        env:
-          MAGENTO_VERSION: "2.4.8"
-          COMPOSER_VERSION: "2"
-  integration-tests-2-4-9-alpha-3:
-    name: "Integration 2.4.9-alpha3"
-    runs-on: ubuntu-latest
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: root
-        ports:
-          - 3306:3306
-        options: --tmpfs /tmp:rw --tmpfs /var/lib/mysql:rw --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
-      es:
-        image: docker.io/wardenenv/elasticsearch:8.1
-        ports:
-          - 9200:9200
-        env:
-          'discovery.type': single-node
-          'xpack.security.enabled': false
-          ES_JAVA_OPTS: "-Xms64m -Xmx512m"
-        options: --health-cmd="curl localhost:9200/_cluster/health?wait_for_status=yellow&timeout=60s" --health-interval=10s --health-timeout=5s --health-retries=3
-    env:
-      XDEBUG_MODE: "debug"
-      MODULE_NAME: "Convenient_Hello"
-      COMPOSER_NAME: "convenient/hello"
-    steps:
-      - uses: actions/checkout@v4
-      - uses: extdn/github-actions-m2/magento-integration-tests/8.4@master
-        with:
-          magento_pre_install_script: ".github/pre-install.sh"
-          post_project_script: ".github/post-project.sh"
-        env:
-          MAGENTO_VERSION: "2.4.9-alpha3"
-          COMPOSER_VERSION: "2"
+      - name: Start Elasticsearch
+        run: |
+          set -euo pipefail
+          CONTAINER_NAME="es-${{ matrix.es_version }}-${{ github.run_id }}-${{ github.run_attempt }}"
+          echo "CONTAINER_NAME=${CONTAINER_NAME}" >> "${GITHUB_ENV}"
+
+          docker run -d \
+            --name "${CONTAINER_NAME}" \
+            -p 9200:9200 \
+            -e discovery.type=single-node \
+            -e xpack.security.enabled=false \
+            -e ES_JAVA_OPTS="-Xms64m -Xmx512m" \
+            "${{ matrix.es_image }}"
+
+      - name: Wait for Elasticsearch health
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 30); do
+            if curl -fsS "http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=1s" >/dev/null; then
+              echo "Elasticsearch ${{ matrix.es_version }} is healthy"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Elasticsearch ${{ matrix.es_version }} did not become healthy in time"
+          exit 1
+
+      - name: Print Elasticsearch logs
+        if: always()
+        run: |
+          if [ -n "${CONTAINER_NAME:-}" ]; then
+            echo "===== Elasticsearch logs (${CONTAINER_NAME}) ====="
+            docker logs "${CONTAINER_NAME}" || true
+          fi
+
+      - name: Remove Elasticsearch container
+        if: always()
+        run: |
+          if [ -n "${CONTAINER_NAME:-}" ]; then
+            docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
+          fi
