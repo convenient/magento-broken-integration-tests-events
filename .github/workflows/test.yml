@@ -34,15 +34,22 @@ jobs:
       - name: Start Elasticsearch
         run: |
           set -euo pipefail
+      
           CONTAINER_NAME="es-${{ matrix.es_version }}-${{ github.run_id }}-${{ github.run_attempt }}"
           echo "CONTAINER_NAME=${CONTAINER_NAME}" >> "${GITHUB_ENV}"
-
+      
+          # Ensure required kernel setting for Elasticsearch
+          sudo sysctl -w vm.max_map_count=262144
+      
           docker run -d \
             --name "${CONTAINER_NAME}" \
             -p 9200:9200 \
             -e discovery.type=single-node \
             -e xpack.security.enabled=false \
             -e ES_JAVA_OPTS="-Xms64m -Xmx512m" \
+            --ulimit memlock=-1:-1 \
+            --sysctl vm.max_map_count=262144 \
+            --security-opt seccomp=unconfined \
             "${{ matrix.es_image }}"
 
       - name: Wait for Elasticsearch health
