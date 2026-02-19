@@ -45,16 +45,24 @@ jobs:
           ES_JAVA_OPTS="-Xms64m -Xmx512m"
           JAVA_TOOL_OPTIONS_ENV=()
           CLI_JAVA_OPTS_ENV=()
+          CGROUP_JVM_FLAGS="-XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport -Dlog4j2.disable.jmx=true -Des.cgroups.hierarchy.override=/"
 
           if [[ "${{ matrix.es_version }}" =~ ^8\. ]]; then
             EXTRA_DOCKER_FLAGS="--ulimit memlock=-1:-1 --security-opt seccomp=unconfined"
           fi
 
-          if [[ "${{ matrix.es_version }}" =~ ^8\.(1|3|4)$ ]]; then
-            EXTRA_DOCKER_FLAGS="${EXTRA_DOCKER_FLAGS} --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:ro --privileged"
+          if [[ "${{ matrix.es_version }}" =~ ^(7\.16|8\.1|8\.2|8\.3|8\.4)$ ]]; then
             JAVA_TOOL_OPTIONS_ENV=(-e JAVA_TOOL_OPTIONS="-XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport")
-            CLI_JAVA_OPTS_ENV=(-e CLI_JAVA_OPTS="-XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport -Dlog4j2.disable.jmx=true -Des.cgroups.hierarchy.override=/")
-            ES_JAVA_OPTS="${ES_JAVA_OPTS} -XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport -Dlog4j2.disable.jmx=true -Des.cgroups.hierarchy.override=/"
+            CLI_JAVA_OPTS_ENV=(-e CLI_JAVA_OPTS="${CGROUP_JVM_FLAGS}")
+            ES_JAVA_OPTS="${ES_JAVA_OPTS} ${CGROUP_JVM_FLAGS}"
+          fi
+
+          if [[ "${{ matrix.es_version }}" =~ ^(7\.16|8\.1|8\.2)$ ]]; then
+            EXTRA_DOCKER_FLAGS="${EXTRA_DOCKER_FLAGS} --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:ro"
+          fi
+
+          if [[ "${{ matrix.es_version }}" =~ ^8\.(3|4)$ ]]; then
+            EXTRA_DOCKER_FLAGS="${EXTRA_DOCKER_FLAGS} --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:ro --privileged"
           fi
 
           docker pull "${{ matrix.es_image }}"
