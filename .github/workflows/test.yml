@@ -42,8 +42,10 @@ jobs:
           sudo sysctl -w vm.max_map_count=262144
 
           EXTRA_DOCKER_FLAGS=""
+          ES_JAVA_OPTS="-Xms64m -Xmx512m"
           if [[ "${{ matrix.es_version }}" =~ ^8\. ]]; then
-            EXTRA_DOCKER_FLAGS="--ulimit memlock=-1:-1 --security-opt seccomp=unconfined"
+            EXTRA_DOCKER_FLAGS="--ulimit memlock=-1:-1 --security-opt seccomp=unconfined --cgroupns=host"
+            ES_JAVA_OPTS="${ES_JAVA_OPTS} -XX:-UseContainerSupport -Des.cgroups.hierarchy.override=/"
           fi
 
           docker pull "${{ matrix.es_image }}"
@@ -52,7 +54,7 @@ jobs:
             -p 9200:9200 \
             -e discovery.type=single-node \
             -e xpack.security.enabled=false \
-            -e ES_JAVA_OPTS="-Xms64m -Xmx512m" \
+            -e ES_JAVA_OPTS="${ES_JAVA_OPTS}" \
             ${EXTRA_DOCKER_FLAGS} \
             "${{ matrix.es_image }}"
 
