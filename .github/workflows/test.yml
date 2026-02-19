@@ -24,6 +24,12 @@ jobs:
             es_image: "docker.io/wardenenv/elasticsearch:7.17"
           - es_version: "8.1"
             es_image: "docker.io/wardenenv/elasticsearch:8.1"
+          - es_version: "8.2"
+            es_image: "docker.io/wardenenv/elasticsearch:8.2"
+          - es_version: "8.3"
+            es_image: "docker.io/wardenenv/elasticsearch:8.3"
+          - es_version: "8.4"
+            es_image: "docker.io/wardenenv/elasticsearch:8.4"
     steps:
       - name: Start Elasticsearch
         run: |
