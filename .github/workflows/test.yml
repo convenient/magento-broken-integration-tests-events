@@ -40,25 +40,39 @@ jobs:
       
           # Ensure required kernel setting for Elasticsearch
           sudo sysctl -w vm.max_map_count=262144
-      
+
+          EXTRA_DOCKER_FLAGS=""
+          if [[ "${{ matrix.es_version }}" =~ ^8\. ]]; then
+            EXTRA_DOCKER_FLAGS="--ulimit memlock=-1:-1 --security-opt seccomp=unconfined"
+          fi
+
+          docker pull "${{ matrix.es_image }}"
           docker run -d \
             --name "${CONTAINER_NAME}" \
             -p 9200:9200 \
             -e discovery.type=single-node \
             -e xpack.security.enabled=false \
             -e ES_JAVA_OPTS="-Xms64m -Xmx512m" \
-            --ulimit memlock=-1:-1 \
-            --sysctl vm.max_map_count=262144 \
-            --security-opt seccomp=unconfined \
+            ${EXTRA_DOCKER_FLAGS} \
             "${{ matrix.es_image }}"
 
       - name: Wait for Elasticsearch health
         run: |
           set -euo pipefail
-          for attempt in $(seq 1 30); do
+          for attempt in $(seq 1 60); do
+            if [ "$(docker inspect -f '{{.State.Status}}' "${CONTAINER_NAME}" 2>/dev/null || echo missing)" != "running" ]; then
+              echo "Elasticsearch container exited before becoming healthy"
+              docker logs "${CONTAINER_NAME}" || true
+              exit 1
+            fi
+
             if curl -fsS "http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=1s" >/dev/null; then
               echo "Elasticsearch ${{ matrix.es_version }} is healthy"
               exit 0
+            fi
+
+            if [ "$((attempt % 10))" -eq 0 ]; then
+              echo "Still waiting for Elasticsearch ${{ matrix.es_version }} (${attempt}/60)..."
             fi
             sleep 2
           done
