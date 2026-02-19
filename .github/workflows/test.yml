@@ -55,13 +55,6 @@ jobs:
             JAVA_TOOL_OPTIONS_ENV=(-e JAVA_TOOL_OPTIONS="-XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport")
             CLI_JAVA_OPTS_ENV=(-e CLI_JAVA_OPTS="${CGROUP_JVM_FLAGS}")
             ES_JAVA_OPTS="${ES_JAVA_OPTS} ${CGROUP_JVM_FLAGS}"
-          fi
-
-          if [[ "${{ matrix.es_version }}" == "7.16" ]]; then
-            EXTRA_DOCKER_FLAGS="${EXTRA_DOCKER_FLAGS} --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:ro"
-          fi
-
-          if [[ "${{ matrix.es_version }}" =~ ^8\.(1|2|3|4)$ ]]; then
             EXTRA_DOCKER_FLAGS="${EXTRA_DOCKER_FLAGS} --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:ro --privileged"
           fi
 
