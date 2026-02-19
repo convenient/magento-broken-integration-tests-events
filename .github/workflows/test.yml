@@ -59,16 +59,41 @@ jobs:
           fi
 
           docker pull "${{ matrix.es_image }}"
-          docker run -d \
-            --name "${CONTAINER_NAME}" \
-            -p 9200:9200 \
-            -e discovery.type=single-node \
-            -e xpack.security.enabled=false \
-            "${JAVA_TOOL_OPTIONS_ENV[@]}" \
-            "${CLI_JAVA_OPTS_ENV[@]}" \
-            -e ES_JAVA_OPTS="${ES_JAVA_OPTS}" \
-            ${EXTRA_DOCKER_FLAGS} \
-            "${{ matrix.es_image }}"
+
+          # Debug: print fully resolved runtime inputs.
+          echo "==== Elasticsearch launch debug ===="
+          echo "es_version=${{ matrix.es_version }}"
+          echo "es_image=${{ matrix.es_image }}"
+          echo "container_name=${CONTAINER_NAME}"
+          echo "extra_docker_flags=${EXTRA_DOCKER_FLAGS}"
+          echo "es_java_opts=${ES_JAVA_OPTS}"
+          printf 'JAVA_TOOL_OPTIONS_ENV tokens: %q\n' "${JAVA_TOOL_OPTIONS_ENV[@]}"
+          printf 'CLI_JAVA_OPTS_ENV tokens: %q\n' "${CLI_JAVA_OPTS_ENV[@]}"
+          docker version --format 'docker_client_api={{.Client.APIVersion}} docker_server_api={{.Server.APIVersion}}'
+
+          DOCKER_RUN_CMD=(
+            docker run -d
+            --name "${CONTAINER_NAME}"
+            -p 9200:9200
+            -e discovery.type=single-node
+            -e xpack.security.enabled=false
+            "${JAVA_TOOL_OPTIONS_ENV[@]}"
+            "${CLI_JAVA_OPTS_ENV[@]}"
+            -e ES_JAVA_OPTS="${ES_JAVA_OPTS}"
+          )
+
+          if [ -n "${EXTRA_DOCKER_FLAGS}" ]; then
+            # shellcheck disable=SC2206
+            EXTRA_DOCKER_FLAGS_ARR=(${EXTRA_DOCKER_FLAGS})
+            DOCKER_RUN_CMD+=("${EXTRA_DOCKER_FLAGS_ARR[@]}")
+          fi
+
+          DOCKER_RUN_CMD+=("${{ matrix.es_image }}")
+          printf 'docker_run_cmd='
+          printf ' %q' "${DOCKER_RUN_CMD[@]}"
+          printf '\n'
+
+          "${DOCKER_RUN_CMD[@]}"
 
       - name: Wait for Elasticsearch health
         run: |
