@@ -91,23 +91,6 @@ jobs:
           docker version --format 'docker_client_api={{.Client.APIVersion}} docker_server_api={{.Server.APIVersion}}'
           docker ps -a
 
-      - name: Wait for Elasticsearch health
-        run: |
-          set -euo pipefail
-          for attempt in $(seq 1 60); do
-            if curl -fsS "http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=1s" >/dev/null; then
-              echo "Elasticsearch ${{ matrix.es_version }} is healthy"
-              exit 0
-            fi
-
-            if [ "$((attempt % 10))" -eq 0 ]; then
-              echo "Still waiting for Elasticsearch ${{ matrix.es_version }} (${attempt}/60)..."
-            fi
-            sleep 2
-          done
-          echo "Elasticsearch ${{ matrix.es_version }} did not become healthy in time"
-          exit 1
-
       - name: Print Elasticsearch logs
         if: always()
         run: |
