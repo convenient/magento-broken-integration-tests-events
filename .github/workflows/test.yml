@@ -43,17 +43,18 @@ jobs:
 
           EXTRA_DOCKER_FLAGS=""
           ES_JAVA_OPTS="-Xms64m -Xmx512m"
-          JAVA_TOOL_OPTIONS=""
-          CLI_JAVA_OPTS=""
+          JAVA_TOOL_OPTIONS_ENV=()
+          CLI_JAVA_OPTS_ENV=()
+
           if [[ "${{ matrix.es_version }}" =~ ^8\. ]]; then
-            EXTRA_DOCKER_FLAGS="--ulimit memlock=-1:-1 --security-opt seccomp=unconfined --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:ro"
-            JAVA_TOOL_OPTIONS="-XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport"
-            CLI_JAVA_OPTS="-XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport -Dlog4j2.disable.jmx=true -Des.cgroups.hierarchy.override=/"
-            ES_JAVA_OPTS="${ES_JAVA_OPTS} -XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport -Dlog4j2.disable.jmx=true -Des.cgroups.hierarchy.override=/"
+            EXTRA_DOCKER_FLAGS="--ulimit memlock=-1:-1 --security-opt seccomp=unconfined"
           fi
 
           if [[ "${{ matrix.es_version }}" =~ ^8\.(1|3|4)$ ]]; then
-            EXTRA_DOCKER_FLAGS="${EXTRA_DOCKER_FLAGS} --privileged"
+            EXTRA_DOCKER_FLAGS="${EXTRA_DOCKER_FLAGS} --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:ro --privileged"
+            JAVA_TOOL_OPTIONS_ENV=(-e JAVA_TOOL_OPTIONS="-XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport")
+            CLI_JAVA_OPTS_ENV=(-e CLI_JAVA_OPTS="-XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport -Dlog4j2.disable.jmx=true -Des.cgroups.hierarchy.override=/")
+            ES_JAVA_OPTS="${ES_JAVA_OPTS} -XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport -Dlog4j2.disable.jmx=true -Des.cgroups.hierarchy.override=/"
           fi
 
           docker pull "${{ matrix.es_image }}"
@@ -62,8 +63,8 @@ jobs:
             -p 9200:9200 \
             -e discovery.type=single-node \
             -e xpack.security.enabled=false \
-            -e JAVA_TOOL_OPTIONS="${JAVA_TOOL_OPTIONS}" \
-            -e CLI_JAVA_OPTS="${CLI_JAVA_OPTS}" \
+            "${JAVA_TOOL_OPTIONS_ENV[@]}" \
+            "${CLI_JAVA_OPTS_ENV[@]}" \
             -e ES_JAVA_OPTS="${ES_JAVA_OPTS}" \
             ${EXTRA_DOCKER_FLAGS} \
             "${{ matrix.es_image }}"
