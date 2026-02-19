@@ -9,68 +9,21 @@ on:
   workflow_dispatch:
 
 jobs:
-  elasticsearch-boot:
-    name: "ES Boot ${{ matrix.es_version }}"
+  es-7-8:
+    name: "ES Boot 7.8"
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - es_version: "7.8"
-            es_image: "docker.io/wardenenv/elasticsearch:7.8"
-            es_java_opts: "-Xms64m -Xmx512m"
-            java_tool_options: ""
-            cli_java_opts: ""
-            es_service_options: ""
-          - es_version: "7.16"
-            es_image: "docker.io/wardenenv/elasticsearch:7.16"
-            es_java_opts: "-Xms64m -Xmx512m"
-            java_tool_options: ""
-            cli_java_opts: ""
-            es_service_options: ""
-          - es_version: "7.17"
-            es_image: "docker.io/wardenenv/elasticsearch:7.17"
-            es_java_opts: "-Xms64m -Xmx512m"
-            java_tool_options: ""
-            cli_java_opts: ""
-            es_service_options: ""
-          - es_version: "8.1"
-            es_image: "docker.io/wardenenv/elasticsearch:8.1"
-            es_java_opts: "-Xms64m -Xmx512m -XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport -Dlog4j2.disable.jmx=true -Des.cgroups.hierarchy.override=/"
-            java_tool_options: "-XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport"
-            cli_java_opts: "-XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport -Dlog4j2.disable.jmx=true -Des.cgroups.hierarchy.override=/"
-            es_service_options: "--ulimit memlock=-1:-1 --security-opt seccomp=unconfined --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:ro --privileged"
-          - es_version: "8.2"
-            es_image: "docker.io/wardenenv/elasticsearch:8.2"
-            es_java_opts: "-Xms64m -Xmx512m -XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport -Dlog4j2.disable.jmx=true -Des.cgroups.hierarchy.override=/"
-            java_tool_options: "-XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport"
-            cli_java_opts: "-XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport -Dlog4j2.disable.jmx=true -Des.cgroups.hierarchy.override=/"
-            es_service_options: "--ulimit memlock=-1:-1 --security-opt seccomp=unconfined --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:ro --privileged"
-          - es_version: "8.3"
-            es_image: "docker.io/wardenenv/elasticsearch:8.3"
-            es_java_opts: "-Xms64m -Xmx512m -XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport -Dlog4j2.disable.jmx=true -Des.cgroups.hierarchy.override=/"
-            java_tool_options: "-XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport"
-            cli_java_opts: "-XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport -Dlog4j2.disable.jmx=true -Des.cgroups.hierarchy.override=/"
-            es_service_options: "--ulimit memlock=-1:-1 --security-opt seccomp=unconfined --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:ro --privileged"
-          - es_version: "8.4"
-            es_image: "docker.io/wardenenv/elasticsearch:8.4"
-            es_java_opts: "-Xms64m -Xmx512m -XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport -Dlog4j2.disable.jmx=true -Des.cgroups.hierarchy.override=/"
-            java_tool_options: "-XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport"
-            cli_java_opts: "-XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport -Dlog4j2.disable.jmx=true -Des.cgroups.hierarchy.override=/"
-            es_service_options: "--ulimit memlock=-1:-1 --security-opt seccomp=unconfined --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:ro --privileged"
     services:
       es:
-        image: ${{ matrix.es_image }}
+        image: docker.io/wardenenv/elasticsearch:7.8
         ports:
           - 9200:9200
         env:
           discovery.type: single-node
           xpack.security.enabled: "false"
-          ES_JAVA_OPTS: ${{ matrix.es_java_opts }}
-          JAVA_TOOL_OPTIONS: ${{ matrix.java_tool_options }}
-          CLI_JAVA_OPTS: ${{ matrix.cli_java_opts }}
+          ES_JAVA_OPTS: "-Xms64m -Xmx512m"
+          JAVA_TOOL_OPTIONS: ""
+          CLI_JAVA_OPTS: ""
         options: >-
-          ${{ matrix.es_service_options }}
           --health-cmd="curl -fsS http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=60s || exit 1"
           --health-interval=10s
           --health-timeout=5s
@@ -80,25 +33,299 @@ jobs:
       - name: Print ES Service Debug
         run: |
           set -euo pipefail
-
           echo "==== Elasticsearch launch debug ===="
-          echo "es_version=${{ matrix.es_version }}"
-          echo "es_image=${{ matrix.es_image }}"
-          echo "es_service_options=${{ matrix.es_service_options }}"
-          echo "es_java_opts=${{ matrix.es_java_opts }}"
-          echo "java_tool_options=${{ matrix.java_tool_options }}"
-          echo "cli_java_opts=${{ matrix.cli_java_opts }}"
+          echo "es_version=7.8"
+          echo "es_image=docker.io/wardenenv/elasticsearch:7.8"
+          echo "es_service_options="
+          echo "es_java_opts=-Xms64m -Xmx512m"
+          echo "java_tool_options="
+          echo "cli_java_opts="
           docker version --format 'docker_client_api={{.Client.APIVersion}} docker_server_api={{.Server.APIVersion}}'
           docker ps -a
-
       - name: Print Elasticsearch logs
         if: always()
         run: |
-          ES_CONTAINER_ID="$(docker ps -a --filter "ancestor=${{ matrix.es_image }}" --format '{{.ID}}' | head -n1 || true)"
+          ES_CONTAINER_ID="$(docker ps -a --filter "ancestor=docker.io/wardenenv/elasticsearch:7.8" --format '{{.ID}}' | head -n1 || true)"
           if [ -n "${ES_CONTAINER_ID}" ]; then
             echo "===== Elasticsearch service logs (${ES_CONTAINER_ID}) ====="
             docker inspect "${ES_CONTAINER_ID}" || true
             docker logs "${ES_CONTAINER_ID}" || true
-          else
-            echo "No Elasticsearch service container found for image ${{ matrix.es_image }}"
+          fi
+
+  es-7-16:
+    name: "ES Boot 7.16"
+    runs-on: ubuntu-latest
+    services:
+      es:
+        image: docker.io/wardenenv/elasticsearch:7.16
+        ports:
+          - 9200:9200
+        env:
+          discovery.type: single-node
+          xpack.security.enabled: "false"
+          ES_JAVA_OPTS: "-Xms64m -Xmx512m"
+          JAVA_TOOL_OPTIONS: ""
+          CLI_JAVA_OPTS: ""
+        options: >-
+          --health-cmd="curl -fsS http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=60s || exit 1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+          --health-start-period=30s
+    steps:
+      - name: Print ES Service Debug
+        run: |
+          set -euo pipefail
+          echo "==== Elasticsearch launch debug ===="
+          echo "es_version=7.16"
+          echo "es_image=docker.io/wardenenv/elasticsearch:7.16"
+          echo "es_service_options="
+          echo "es_java_opts=-Xms64m -Xmx512m"
+          echo "java_tool_options="
+          echo "cli_java_opts="
+          docker version --format 'docker_client_api={{.Client.APIVersion}} docker_server_api={{.Server.APIVersion}}'
+          docker ps -a
+      - name: Print Elasticsearch logs
+        if: always()
+        run: |
+          ES_CONTAINER_ID="$(docker ps -a --filter "ancestor=docker.io/wardenenv/elasticsearch:7.16" --format '{{.ID}}' | head -n1 || true)"
+          if [ -n "${ES_CONTAINER_ID}" ]; then
+            echo "===== Elasticsearch service logs (${ES_CONTAINER_ID}) ====="
+            docker inspect "${ES_CONTAINER_ID}" || true
+            docker logs "${ES_CONTAINER_ID}" || true
+          fi
+
+  es-7-17:
+    name: "ES Boot 7.17"
+    runs-on: ubuntu-latest
+    services:
+      es:
+        image: docker.io/wardenenv/elasticsearch:7.17
+        ports:
+          - 9200:9200
+        env:
+          discovery.type: single-node
+          xpack.security.enabled: "false"
+          ES_JAVA_OPTS: "-Xms64m -Xmx512m"
+          JAVA_TOOL_OPTIONS: ""
+          CLI_JAVA_OPTS: ""
+        options: >-
+          --health-cmd="curl -fsS http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=60s || exit 1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+          --health-start-period=30s
+    steps:
+      - name: Print ES Service Debug
+        run: |
+          set -euo pipefail
+          echo "==== Elasticsearch launch debug ===="
+          echo "es_version=7.17"
+          echo "es_image=docker.io/wardenenv/elasticsearch:7.17"
+          echo "es_service_options="
+          echo "es_java_opts=-Xms64m -Xmx512m"
+          echo "java_tool_options="
+          echo "cli_java_opts="
+          docker version --format 'docker_client_api={{.Client.APIVersion}} docker_server_api={{.Server.APIVersion}}'
+          docker ps -a
+      - name: Print Elasticsearch logs
+        if: always()
+        run: |
+          ES_CONTAINER_ID="$(docker ps -a --filter "ancestor=docker.io/wardenenv/elasticsearch:7.17" --format '{{.ID}}' | head -n1 || true)"
+          if [ -n "${ES_CONTAINER_ID}" ]; then
+            echo "===== Elasticsearch service logs (${ES_CONTAINER_ID}) ====="
+            docker inspect "${ES_CONTAINER_ID}" || true
+            docker logs "${ES_CONTAINER_ID}" || true
+          fi
+
+  es-8-1:
+    name: "ES Boot 8.1"
+    runs-on: ubuntu-latest
+    services:
+      es:
+        image: docker.io/wardenenv/elasticsearch:8.1
+        ports:
+          - 9200:9200
+        env:
+          discovery.type: single-node
+          xpack.security.enabled: "false"
+          ES_JAVA_OPTS: "-Xms64m -Xmx512m -XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport -Dlog4j2.disable.jmx=true -Des.cgroups.hierarchy.override=/"
+          JAVA_TOOL_OPTIONS: "-XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport"
+          CLI_JAVA_OPTS: "-XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport -Dlog4j2.disable.jmx=true -Des.cgroups.hierarchy.override=/"
+        options: >-
+          --ulimit memlock=-1:-1
+          --security-opt seccomp=unconfined
+          --cgroupns=host
+          -v /sys/fs/cgroup:/sys/fs/cgroup:ro
+          --privileged
+          --health-cmd="curl -fsS http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=60s || exit 1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+          --health-start-period=30s
+    steps:
+      - name: Print ES Service Debug
+        run: |
+          set -euo pipefail
+          echo "==== Elasticsearch launch debug ===="
+          echo "es_version=8.1"
+          echo "es_image=docker.io/wardenenv/elasticsearch:8.1"
+          echo "es_service_options=--ulimit memlock=-1:-1 --security-opt seccomp=unconfined --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:ro --privileged"
+          echo "es_java_opts=-Xms64m -Xmx512m -XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport -Dlog4j2.disable.jmx=true -Des.cgroups.hierarchy.override=/"
+          echo "java_tool_options=-XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport"
+          echo "cli_java_opts=-XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport -Dlog4j2.disable.jmx=true -Des.cgroups.hierarchy.override=/"
+          docker version --format 'docker_client_api={{.Client.APIVersion}} docker_server_api={{.Server.APIVersion}}'
+          docker ps -a
+      - name: Print Elasticsearch logs
+        if: always()
+        run: |
+          ES_CONTAINER_ID="$(docker ps -a --filter "ancestor=docker.io/wardenenv/elasticsearch:8.1" --format '{{.ID}}' | head -n1 || true)"
+          if [ -n "${ES_CONTAINER_ID}" ]; then
+            echo "===== Elasticsearch service logs (${ES_CONTAINER_ID}) ====="
+            docker inspect "${ES_CONTAINER_ID}" || true
+            docker logs "${ES_CONTAINER_ID}" || true
+          fi
+
+  es-8-2:
+    name: "ES Boot 8.2"
+    runs-on: ubuntu-latest
+    services:
+      es:
+        image: docker.io/wardenenv/elasticsearch:8.2
+        ports:
+          - 9200:9200
+        env:
+          discovery.type: single-node
+          xpack.security.enabled: "false"
+          ES_JAVA_OPTS: "-Xms64m -Xmx512m -XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport -Dlog4j2.disable.jmx=true -Des.cgroups.hierarchy.override=/"
+          JAVA_TOOL_OPTIONS: "-XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport"
+          CLI_JAVA_OPTS: "-XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport -Dlog4j2.disable.jmx=true -Des.cgroups.hierarchy.override=/"
+        options: >-
+          --ulimit memlock=-1:-1
+          --security-opt seccomp=unconfined
+          --cgroupns=host
+          -v /sys/fs/cgroup:/sys/fs/cgroup:ro
+          --privileged
+          --health-cmd="curl -fsS http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=60s || exit 1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+          --health-start-period=30s
+    steps:
+      - name: Print ES Service Debug
+        run: |
+          set -euo pipefail
+          echo "==== Elasticsearch launch debug ===="
+          echo "es_version=8.2"
+          echo "es_image=docker.io/wardenenv/elasticsearch:8.2"
+          echo "es_service_options=--ulimit memlock=-1:-1 --security-opt seccomp=unconfined --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:ro --privileged"
+          echo "es_java_opts=-Xms64m -Xmx512m -XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport -Dlog4j2.disable.jmx=true -Des.cgroups.hierarchy.override=/"
+          echo "java_tool_options=-XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport"
+          echo "cli_java_opts=-XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport -Dlog4j2.disable.jmx=true -Des.cgroups.hierarchy.override=/"
+          docker version --format 'docker_client_api={{.Client.APIVersion}} docker_server_api={{.Server.APIVersion}}'
+          docker ps -a
+      - name: Print Elasticsearch logs
+        if: always()
+        run: |
+          ES_CONTAINER_ID="$(docker ps -a --filter "ancestor=docker.io/wardenenv/elasticsearch:8.2" --format '{{.ID}}' | head -n1 || true)"
+          if [ -n "${ES_CONTAINER_ID}" ]; then
+            echo "===== Elasticsearch service logs (${ES_CONTAINER_ID}) ====="
+            docker inspect "${ES_CONTAINER_ID}" || true
+            docker logs "${ES_CONTAINER_ID}" || true
+          fi
+
+  es-8-3:
+    name: "ES Boot 8.3"
+    runs-on: ubuntu-latest
+    services:
+      es:
+        image: docker.io/wardenenv/elasticsearch:8.3
+        ports:
+          - 9200:9200
+        env:
+          discovery.type: single-node
+          xpack.security.enabled: "false"
+          ES_JAVA_OPTS: "-Xms64m -Xmx512m -XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport -Dlog4j2.disable.jmx=true -Des.cgroups.hierarchy.override=/"
+          JAVA_TOOL_OPTIONS: "-XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport"
+          CLI_JAVA_OPTS: "-XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport -Dlog4j2.disable.jmx=true -Des.cgroups.hierarchy.override=/"
+        options: >-
+          --ulimit memlock=-1:-1
+          --security-opt seccomp=unconfined
+          --cgroupns=host
+          -v /sys/fs/cgroup:/sys/fs/cgroup:ro
+          --privileged
+          --health-cmd="curl -fsS http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=60s || exit 1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+          --health-start-period=30s
+    steps:
+      - name: Print ES Service Debug
+        run: |
+          set -euo pipefail
+          echo "==== Elasticsearch launch debug ===="
+          echo "es_version=8.3"
+          echo "es_image=docker.io/wardenenv/elasticsearch:8.3"
+          echo "es_service_options=--ulimit memlock=-1:-1 --security-opt seccomp=unconfined --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:ro --privileged"
+          echo "es_java_opts=-Xms64m -Xmx512m -XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport -Dlog4j2.disable.jmx=true -Des.cgroups.hierarchy.override=/"
+          echo "java_tool_options=-XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport"
+          echo "cli_java_opts=-XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport -Dlog4j2.disable.jmx=true -Des.cgroups.hierarchy.override=/"
+          docker version --format 'docker_client_api={{.Client.APIVersion}} docker_server_api={{.Server.APIVersion}}'
+          docker ps -a
+      - name: Print Elasticsearch logs
+        if: always()
+        run: |
+          ES_CONTAINER_ID="$(docker ps -a --filter "ancestor=docker.io/wardenenv/elasticsearch:8.3" --format '{{.ID}}' | head -n1 || true)"
+          if [ -n "${ES_CONTAINER_ID}" ]; then
+            echo "===== Elasticsearch service logs (${ES_CONTAINER_ID}) ====="
+            docker inspect "${ES_CONTAINER_ID}" || true
+            docker logs "${ES_CONTAINER_ID}" || true
+          fi
+
+  es-8-4:
+    name: "ES Boot 8.4"
+    runs-on: ubuntu-latest
+    services:
+      es:
+        image: docker.io/wardenenv/elasticsearch:8.4
+        ports:
+          - 9200:9200
+        env:
+          discovery.type: single-node
+          xpack.security.enabled: "false"
+          ES_JAVA_OPTS: "-Xms64m -Xmx512m -XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport -Dlog4j2.disable.jmx=true -Des.cgroups.hierarchy.override=/"
+          JAVA_TOOL_OPTIONS: "-XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport"
+          CLI_JAVA_OPTS: "-XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport -Dlog4j2.disable.jmx=true -Des.cgroups.hierarchy.override=/"
+        options: >-
+          --ulimit memlock=-1:-1
+          --security-opt seccomp=unconfined
+          --cgroupns=host
+          -v /sys/fs/cgroup:/sys/fs/cgroup:ro
+          --privileged
+          --health-cmd="curl -fsS http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=60s || exit 1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+          --health-start-period=30s
+    steps:
+      - name: Print ES Service Debug
+        run: |
+          set -euo pipefail
+          echo "==== Elasticsearch launch debug ===="
+          echo "es_version=8.4"
+          echo "es_image=docker.io/wardenenv/elasticsearch:8.4"
+          echo "es_service_options=--ulimit memlock=-1:-1 --security-opt seccomp=unconfined --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:ro --privileged"
+          echo "es_java_opts=-Xms64m -Xmx512m -XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport -Dlog4j2.disable.jmx=true -Des.cgroups.hierarchy.override=/"
+          echo "java_tool_options=-XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport"
+          echo "cli_java_opts=-XX:+IgnoreUnrecognizedVMOptions -XX:-UseContainerSupport -Dlog4j2.disable.jmx=true -Des.cgroups.hierarchy.override=/"
+          docker version --format 'docker_client_api={{.Client.APIVersion}} docker_server_api={{.Server.APIVersion}}'
+          docker ps -a
+      - name: Print Elasticsearch logs
+        if: always()
+        run: |
+          ES_CONTAINER_ID="$(docker ps -a --filter "ancestor=docker.io/wardenenv/elasticsearch:8.4" --format '{{.ID}}' | head -n1 || true)"
+          if [ -n "${ES_CONTAINER_ID}" ]; then
+            echo "===== Elasticsearch service logs (${ES_CONTAINER_ID}) ====="
+            docker inspect "${ES_CONTAINER_ID}" || true
+            docker logs "${ES_CONTAINER_ID}" || true
           fi
