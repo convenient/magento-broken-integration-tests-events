@@ -44,7 +44,7 @@ jobs:
           COMPOSER_VERSION: "2"
   integration-tests-2-4-8:
     name: "Integration 2.4.8"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     services:
       mysql:
         image: mysql:8.0
